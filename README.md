@@ -1,1 +1,1 @@
-# CookingRecipeApp
+# RecipeDaily
