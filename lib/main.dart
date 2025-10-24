@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:recipe_daily/firebase_options.dart';
 import 'presentation/providers/auth_provider.dart';
-import 'presentation/screens/auth/login_screen.dart';
+import 'presentation/screens/auth/auth_wrapper.dart';
 import 'core/constants/app_colors.dart';
 
 void main() async {
@@ -36,7 +36,7 @@ class RecipeDailyApp extends StatelessWidget {
           primaryColor: AppColors.primary,
           scaffoldBackgroundColor: Colors.white,
         ),
-        home: const LoginScreen(),
+        home: const AuthWrapper(),
       ),
     );
   }

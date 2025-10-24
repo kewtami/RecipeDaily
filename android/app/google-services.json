@@ -38,6 +38,13 @@
             {
               "client_id": "683496989623-r647l362iipe4isbbca5l8ct9h87f0fr.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "683496989623-1c7nie86pg5dq6up8caiku69jklrq2lg.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.recipeDaily"
+              }
             }
           ]
         }

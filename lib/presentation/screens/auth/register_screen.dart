@@ -6,7 +6,6 @@ import '../../widgets/custom_text_field.dart';
 import '../../widgets/google_button.dart';
 import '../../widgets/divider_with_text.dart';
 import '../../../core/constants/app_colors.dart';
-import 'verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -44,18 +43,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (!mounted) return;
 
-    if (success) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => VerificationScreen(
-            email: _emailController.text.trim(),
-          ),
-        ),
-      );
-    } else {
+    if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.error ?? 'Registration failed'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleGoogleSignUp() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.signInWithGoogle();
+
+    if (!mounted) return;
+
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.error ?? 'Google sign up failed'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -78,24 +85,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 
                 // Logo
                 Center(
-                  child: Container(
-                    height: 100,
-                    width: 200,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'RECIPE\nDAILY',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                  child: Image.asset(
+                    'assets/images/logo_text.png',
+                    height: 120,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.restaurant,
+                        size: 80,
+                        color: AppColors.primary,
+                      );
+                    },
                   ),
                 ),
                 
@@ -194,17 +194,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 
                 const SizedBox(height: 24),
                 
-                // // Google Sign Up Button - CUSTOM WIDGET
-                // GoogleButton(
-                //   text: 'Sign Up with Google',
-                //   onPressed: () async {
-                //     final authProvider = Provider.of<AuthProvider>(
-                //       context,
-                //       listen: false,
-                //     );
-                //     await authProvider.signInWithGoogle();
-                //   },
-                // ),
+                // Google Sign Up Button
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    return GoogleButton(
+                      text: 'Sign Up with Google',
+                      onPressed: _handleGoogleSignUp,
+                      isLoading: authProvider.isLoading,
+                    );
+                  },
+                ),
                 
                 const SizedBox(height: 24),
                 

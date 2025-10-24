@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/google_button.dart';
 import '../../widgets/divider_with_text.dart';
 import 'register_screen.dart';
-import '../main/main_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -38,13 +39,28 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
 
-    if (success) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainScreen()),
-      );
-    } else {
+    if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(authProvider.error ?? 'Login failed')),
+        SnackBar(
+          content: Text(authProvider.error ?? 'Login failed'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.signInWithGoogle();
+
+    if (!mounted) return;
+
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.error ?? 'Google sign in failed'),
+          backgroundColor: AppColors.error,
+        ),
       );
     }
   }
@@ -63,26 +79,19 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 40),
                 
-                // Logo (same as before)
+                // Logo
                 Center(
-                  child: Container(
-                    height: 100,
-                    width: 200,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF6B35),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'RECIPE\nDAILY',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                  child: Image.asset(
+                    'assets/images/logo_text.png',
+                    height: 120,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.restaurant,
+                        size: 80,
+                        color: AppColors.primary,
+                      );
+                    },
                   ),
                 ),
                 
@@ -130,8 +139,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
-                    child: const Text('Forgot password?'),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ForgotPasswordScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Forgot password?',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
                   ),
                 ),
                 
@@ -153,19 +171,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Divider
                 const DividerWithText(text: 'Or continue with'),
                 
-                // const SizedBox(height: 24),
+                const SizedBox(height: 24),
                 
-                // // Google Button - CUSTOM WIDGET!
-                // GoogleButton(
-                //   text: 'Login with Google',
-                //   onPressed: () async {
-                //     final authProvider = Provider.of<AuthProvider>(
-                //       context,
-                //       listen: false,
-                //     );
-                //     await authProvider.signInWithGoogle();
-                //   },
-                // ),
+                // Google Button
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    return GoogleButton(
+                      text: 'Login with Google',
+                      onPressed: _handleGoogleSignIn,
+                      isLoading: authProvider.isLoading,
+                    );
+                  },
+                ),
                 
                 const SizedBox(height: 24),
                 
@@ -187,7 +204,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       child: const Text(
                         'Sign Up',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
