@@ -43,7 +43,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (!mounted) return;
 
-    if (!success) {
+    if (success) {
+      print('Registration successful - AuthWrapper will handle navigation');
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account created! Please verify your email.'),
+          backgroundColor: AppColors.success,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      // AuthWrapper will automatically navigate to VerificationScreen
+    } else {
+      print('Registration failed: ${authProvider.error}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.error ?? 'Registration failed'),
@@ -54,12 +66,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _handleGoogleSignUp() async {
+    print('Starting Google Sign Up...');
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.signInWithGoogle();
 
     if (!mounted) return;
 
-    if (!success) {
+    if (success) {
+      print('Google sign up successful - AuthWrapper will handle navigation');
+      // Google accounts are auto-verified
+      // AuthWrapper will automatically navigate to MainScreen
+    } else {
+      print('Google sign up failed: ${authProvider.error}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.error ?? 'Google sign up failed'),

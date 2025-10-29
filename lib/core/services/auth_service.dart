@@ -1,4 +1,3 @@
-// lib/core/services/auth_service.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
@@ -34,19 +33,27 @@ class AuthService {
   // Register
   Future<UserModel?> register(String email, String password, String name) async {
     try {
+      print('Creating user account...');
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
+      print('User account created');
+      
+      // Update display name
       await result.user?.updateDisplayName(name);
+      print('Display name updated');
 
       // Send email verification
-      await result.user?.sendEmailVerification();
+      if (result.user != null) {
+        await result.user!.sendEmailVerification();
+        print('Verification email sent to ${result.user!.email}');
+      }
 
       return _convertToUserModel(result.user);
     } catch (e) {
-      print('Register error: $e');
+      print('❌ Register error: $e');
       rethrow;
     }
   }
@@ -135,7 +142,7 @@ class AuthService {
       // Sign in to Firebase with the Google credential
       UserCredential result = await _auth.signInWithCredential(credential);
 
-      print('✅ Signed in to Firebase: ${result.user?.email}');
+      print('Signed in to Firebase: ${result.user?.email}');
 
       return _convertToUserModel(result.user);
     } on FirebaseAuthException catch (e) {
@@ -151,19 +158,17 @@ class AuthService {
   // Sign out from both Firebase and Google
   Future<void> signOut() async {
     try {
-      print("Signing out from Firebase...");
-      await _auth.signOut();
-
-      print("Signing out from Google...");
-      await _googleSignIn.signOut();
-
+      // Sign out concurrently for faster performance
+      await Future.wait([
+        _auth.signOut(),
+        _googleSignIn.signOut(),
+      ]);
       print('Signed out successfully from Firebase and Google');
     } catch (e) {
-      print('Sign out error: $e');
-      rethrow;
+      print('Sign out error (non-critical): $e');
+      // Don't rethrow - sign out should always succeed even if Google sign out fails
     }
   }
-
 
   // Resend email verification
   Future<void> resendEmailVerification() async {

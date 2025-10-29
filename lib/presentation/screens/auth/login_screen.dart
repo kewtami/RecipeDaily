@@ -39,7 +39,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
 
-    if (!success) {
+    if (success) {
+      print('Login successful - AuthWrapper will handle navigation');
+      // AuthWrapper will automatically redirect based on email verification status
+    } else {
+      print('❌ Login failed: ${authProvider.error}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.error ?? 'Login failed'),
@@ -50,18 +54,26 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleGoogleSignIn() async {
+    print('🔍 Starting Google Sign In...');
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.signInWithGoogle();
 
     if (!mounted) return;
 
-    if (!success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.error ?? 'Google sign in failed'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+    if (success) {
+      print('Google sign in successful - AuthWrapper will handle navigation');
+      // AuthWrapper will automatically redirect to MainScreen (Google accounts are auto-verified)
+    } else {
+      print('❌ Google sign in failed: ${authProvider.error}');
+      if (authProvider.error != null && authProvider.error!.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.error!),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 

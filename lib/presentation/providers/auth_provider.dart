@@ -73,10 +73,24 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Sign Out
+  // Sign Out with timeout
   Future<void> signOut() async {
-    await _authService.signOut();
-    _user = null;
-    notifyListeners();
+    try {
+      // Add timeout to prevent infinite loading
+      await _authService.signOut().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          print('⚠️ Sign out timeout - forcing local sign out');
+          // Force local sign out even if server fails
+        },
+      );
+      _user = null;
+      notifyListeners();
+    } catch (e) {
+      print('⚠️ Sign out error: $e');
+      // Force sign out locally even if there's an error
+      _user = null;
+      notifyListeners();
+    }
   }
 }
