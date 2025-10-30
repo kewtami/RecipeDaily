@@ -23,6 +23,8 @@ dependencies:
   cloud_firestore: ^6.0.3
   firebase_storage: ^13.0.3
 
+  mailer: ^6.5.0
+
   # Google Sign In
   google_sign_in: ^6.2.0
 
