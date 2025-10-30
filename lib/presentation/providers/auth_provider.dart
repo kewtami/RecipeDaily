@@ -53,7 +53,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Google Sign In
+ // Login screen - existing users
   Future<bool> signInWithGoogle() async {
     _isLoading = true;
     _error = null;
@@ -61,12 +61,30 @@ class AuthProvider with ChangeNotifier {
 
     try {
       _user = await _authService.signInWithGoogle();
-      
       _isLoading = false;
       notifyListeners();
       return _user != null;
     } catch (e) {
-      _error = e.toString();
+      _error = _formatError(e.toString());
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Register screen - new users only
+  Future<bool> signUpWithGoogle() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _user = await _authService.signUpWithGoogle();
+      _isLoading = false;
+      notifyListeners();
+      return _user != null;
+    } catch (e) {
+      _error = _formatError(e.toString());
       _isLoading = false;
       notifyListeners();
       return false;
@@ -80,17 +98,29 @@ class AuthProvider with ChangeNotifier {
       await _authService.signOut().timeout(
         const Duration(seconds: 5),
         onTimeout: () {
-          print('⚠️ Sign out timeout - forcing local sign out');
           // Force local sign out even if server fails
         },
       );
       _user = null;
       notifyListeners();
     } catch (e) {
-      print('⚠️ Sign out error: $e');
       // Force sign out locally even if there's an error
       _user = null;
       notifyListeners();
     }
+  }
+
+    String _formatError(String error) {
+    // Remove "Exception: " prefix
+    error = error.replaceAll('Exception: ', '');
+    error = error.replaceAll('[firebase_auth/email-already-in-use] ', '');
+    error = error.replaceAll('[firebase_auth/weak-password] ', '');
+    error = error.replaceAll('[firebase_auth/invalid-email] ', '');
+    error = error.replaceAll('[firebase_auth/wrong-password] ', '');
+    error = error.replaceAll('[firebase_auth/user-not-found] ', '');
+    error = error.replaceAll('[firebase_auth/too-many-requests] ', '');
+    error = error.replaceAll('[firebase_auth/network-request-failed] ', '');
+    
+    return error;
   }
 }

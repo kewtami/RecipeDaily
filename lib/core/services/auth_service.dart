@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
+import 'otp_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -10,13 +11,13 @@ class AuthService {
       'https://www.googleapis.com/auth/userinfo.profile',
     ],
   );
+  final OTPService _otpService = OTPService();
 
   User? get currentUser => _auth.currentUser;
-
-  // Stream for auth state changes
+  // Auth state changes stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // Sign in with email
+// Sign In with Email & Password
   Future<UserModel?> signIn(String email, String password) async {
     try {
       UserCredential result = await _auth.signInWithEmailAndPassword(
@@ -24,51 +25,65 @@ class AuthService {
         password: password,
       );
       return _convertToUserModel(result.user);
-    } catch (e) {
-      print('Sign in error: $e');
+      } catch (e) {
       rethrow;
     }
   }
 
-  // Register
+  // Register with Email & Password
   Future<UserModel?> register(String email, String password, String name) async {
     try {
-      print('Creating user account...');
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      print('User account created');
-      
-      // Update display name
       await result.user?.updateDisplayName(name);
-      print('Display name updated');
 
-      // Send email verification
+      // Generate and send OTP
       if (result.user != null) {
-        await result.user!.sendEmailVerification();
-        print('Verification email sent to ${result.user!.email}');
+        final otp = _otpService.generateOTP();
+        
+        await _otpService.saveOTP(
+          userId: result.user!.uid,
+          otp: otp,
+          email: email,
+        );
+        
+        await _otpService.sendOTPEmail(email: email, otp: otp);
       }
 
       return _convertToUserModel(result.user);
     } catch (e) {
-      print('❌ Register error: $e');
       rethrow;
     }
   }
 
-  // Send password reset email
+  // Verify OTP
+  Future<bool> verifyOTP(String userId, String otp) async {
+    return await _otpService.verifyOTP(userId: userId, enteredOTP: otp);
+  }
+
+  // Resend OTP
+  Future<void> resendOTP(String userId, String email) async {
+    await _otpService.resendOTP(userId: userId, email: email);
+  }
+
+  // Check if user is verified
+  Future<bool> isUserVerified(String userId) async {
+    return await _otpService.isUserVerified(userId);
+  }
+
+  // Password Reset
   Future<void> sendPasswordResetEmail(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } catch (e) {
-      print('Send password reset error: $e');
       rethrow;
     }
   }
 
-  // Change password with validation
+  // Change Password
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -79,20 +94,16 @@ class AuthService {
         throw Exception('No user logged in');
       }
 
-      // Check if new password is same as current
       if (currentPassword == newPassword) {
         throw Exception('New password must be different from current password');
       }
 
-      // Re-authenticate user with current password
       final credential = EmailAuthProvider.credential(
         email: user.email!,
         password: currentPassword,
       );
 
       await user.reauthenticateWithCredential(credential);
-
-      // Update to new password
       await user.updatePassword(newPassword);
     } on FirebaseAuthException catch (e) {
       if (e.code == 'wrong-password') {
@@ -103,74 +114,80 @@ class AuthService {
         throw Exception(e.message ?? 'Failed to change password');
       }
     } catch (e) {
-      print('Change password error: $e');
       rethrow;
     }
   }
 
-  // Sign in with Google
+  // Sign In with Google
   Future<UserModel?> signInWithGoogle() async {
     try {
-      print('Starting Google Sign In...');
-
-      // Sign out from Google first 
       await _googleSignIn.signOut();
-      print('Signed out from previous Google account');
-
-      // Sign in
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
-      if (googleUser == null) {
-        print('Google sign in cancelled by user');
-        return null;
-      }
+      if (googleUser == null) return null;
 
-      print('Google user selected: ${googleUser.email}');
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      print('Got Google authentication tokens');
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      print('Created Firebase credential');
-
-      // Sign in to Firebase with the Google credential
       UserCredential result = await _auth.signInWithCredential(credential);
-
-      print('Signed in to Firebase: ${result.user?.email}');
-
       return _convertToUserModel(result.user);
-    } on FirebaseAuthException catch (e) {
-      print('Firebase Auth Error: ${e.code} - ${e.message}');
-      rethrow;
-    } catch (e, stackTrace) {
-      print('Google sign in error: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       rethrow;
     }
   }
 
-  // Sign out from both Firebase and Google
+  // Sign Up with Google
+  Future<UserModel?> signUpWithGoogle() async {
+    try {
+      await _googleSignIn.signOut();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) return null;
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      UserCredential result = await _auth.signInWithCredential(credential);
+      
+      final isNewUser = result.additionalUserInfo?.isNewUser ?? false;
+      
+      if (!isNewUser) {
+        await _auth.signOut();
+        await _googleSignIn.signOut();
+        
+        throw FirebaseAuthException(
+          code: 'account-exists',
+          message: 'This email is already registered. Please use Login instead.',
+        );
+      }
+      
+      return _convertToUserModel(result.user);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Sign Out
   Future<void> signOut() async {
     try {
-      // Sign out concurrently for faster performance
       await Future.wait([
         _auth.signOut(),
         _googleSignIn.signOut(),
       ]);
-      print('Signed out successfully from Firebase and Google');
     } catch (e) {
-      print('Sign out error (non-critical): $e');
-      // Don't rethrow - sign out should always succeed even if Google sign out fails
+      // Ignore errors, force sign out
     }
   }
 
-  // Resend email verification
+  // Resend Email Verification
   Future<void> resendEmailVerification() async {
     try {
       final user = _auth.currentUser;
@@ -178,18 +195,16 @@ class AuthService {
         await user.sendEmailVerification();
       }
     } catch (e) {
-      print('Resend verification error: $e');
       rethrow;
     }
   }
 
-  // Reload user to check email verification status
+  // Check Email Verified
   Future<bool> checkEmailVerified() async {
     try {
       await _auth.currentUser?.reload();
       return _auth.currentUser?.emailVerified ?? false;
     } catch (e) {
-      print('Check email verified error: $e');
       return false;
     }
   }
