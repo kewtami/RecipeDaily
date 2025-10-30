@@ -85,13 +85,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Change Password',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: AppColors.secondary,
             fontWeight: FontWeight.bold,
           ),
         ),
