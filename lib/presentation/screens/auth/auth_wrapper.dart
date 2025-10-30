@@ -1,78 +1,109 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/auth_service.dart';
 import 'login_screen.dart';
-import 'verification_screen.dart';
-import '../main/main_screen.dart'; 
+import 'otp_verification_screen.dart';
+import '../main/main_screen.dart';
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({Key? key}) : super(key: key);
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  final AuthService _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        print('🔄 AuthWrapper - Connection: ${snapshot.connectionState}');
         // Loading state
         if (snapshot.connectionState == ConnectionState.waiting) {
-          print('AuthWrapper - Loading...');
           return const _LoadingScreen();
         }
 
         // Get current user
         final user = snapshot.data;
-        print('AuthWrapper - User: ${user?.email ?? "No user"}');
 
-        // No user logged in
+        // No user → Login Screen
         if (user == null) {
-          print('Auth: No user logged in → LoginScreen');
           return const LoginScreen();
         }
 
-        // User logged in but email not verified 
-        if (!user.emailVerified) {
-          print('Auth: User ${user.email} not verified → VerificationScreen');
-          return VerificationScreen(email: user.email ?? '');
+        // User is logged in → Check verification
+        final isEmailUser = user.providerData.any(
+          (provider) => provider.providerId == 'password'
+        );
+
+        // Email users → Check verification
+        if (isEmailUser) {
+          return FutureBuilder<bool>(
+            future: _authService.isUserVerified(user.uid),
+            builder: (context, verifySnapshot) {
+              if (verifySnapshot.connectionState == ConnectionState.waiting) {
+                return const _LoadingScreen();
+              }
+
+              final isVerified = verifySnapshot.data ?? false;
+
+              if (!isVerified) {
+                // Not verified → OTP Screen
+                return OTPVerificationScreen(
+                  userId: user.uid,
+                  email: user.email ?? '',
+                );
+              }
+
+              // Verified → Main Screen
+              return const MainScreen();
+            },
+          );
         }
 
-        // User logged in and verified
-        print('Auth: User ${user.email} verified → MainScreen');
+        // Google users → Main Screen
         return const MainScreen();
       },
     );
   }
 }
 
-/// Loading screen shown while checking auth state
 class _LoadingScreen extends StatelessWidget {
   const _LoadingScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // App Logo or Icon
-            Icon(
-              Icons.restaurant,
-              size: 80,
-              color: AppColors.primary,
+            Image.asset(
+              'assets/images/logo_text.png',
+              height: 80,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.restaurant,
+                    size: 40,
+                    color: Colors.white,
+                  ),
+                );
+              },
             ),
-            SizedBox(height: 24),
-            Text(
-              'Recipe Daily',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
-            ),
-            SizedBox(height: 32),
-            CircularProgressIndicator(
+            const SizedBox(height: 32),
+            const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
             ),
           ],

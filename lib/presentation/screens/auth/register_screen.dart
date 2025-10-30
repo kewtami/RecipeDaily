@@ -32,7 +32,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
-
+    
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
     final success = await authProvider.register(
@@ -44,8 +44,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (success) {
-      print('Registration successful - AuthWrapper will handle navigation');
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Account created! Please verify your email.'),
@@ -53,39 +51,180 @@ class _RegisterScreenState extends State<RegisterScreen> {
           duration: Duration(seconds: 2),
         ),
       );
-      // AuthWrapper will automatically navigate to VerificationScreen
+      
+      // Small delay for Firebase
+      await Future.delayed(const Duration(milliseconds: 500));
+      // AuthWrapper will navigate to VerificationScreen
     } else {
-      print('Registration failed: ${authProvider.error}');
+      String errorMsg = authProvider.error ?? 'Registration failed';
+      
+      if (errorMsg.contains('email-already-in-use')) {
+        errorMsg = 'This email is already registered. Please login instead.';
+      } else if (errorMsg.contains('weak-password')) {
+        errorMsg = 'Password is too weak. Use at least 6 characters.';
+      } else if (errorMsg.contains('invalid-email')) {
+        errorMsg = 'Invalid email format.';
+      } else if (errorMsg.contains('network')) {
+        errorMsg = 'Network error. Check your connection.';
+      } else if (errorMsg.contains('too-many-requests') || errorMsg.contains('unusual')) {
+        errorMsg = 'Too many attempts. Please wait and try again.';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.error ?? 'Registration failed'),
+          content: Text(errorMsg),
           backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 4),
         ),
       );
     }
   }
 
+  // Google Sign Up
   Future<void> _handleGoogleSignUp() async {
-    print('Starting Google Sign Up...');
-
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.signInWithGoogle();
+    final success = await authProvider.signUpWithGoogle();
 
     if (!mounted) return;
 
     if (success) {
-      print('Google sign up successful - AuthWrapper will handle navigation');
-      // Google accounts are auto-verified
-      // AuthWrapper will automatically navigate to MainScreen
     } else {
-      print('Google sign up failed: ${authProvider.error}');
+      String errorMsg = authProvider.error ?? 'Google sign up failed';
+      
+      if (errorMsg.contains('account-exists') || errorMsg.contains('already registered')) {
+        errorMsg = 'This email is already registered. Please use Login instead.';
+      } else if (errorMsg.contains('network')) {
+        errorMsg = 'Network error. Check your connection.';
+      } else if (errorMsg.contains('cancelled')) {
+        // User cancelled - don't show error
+        return;
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.error ?? 'Google sign up failed'),
+          content: Text(errorMsg),
           backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 4),
         ),
       );
     }
+  }
+
+  // Google Sign Up with Terms Dialog
+  Future<void> _handleGoogleSignUpWithTerms() async {
+    // Show Terms of Service dialog
+    final accepted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.verified_user, color: AppColors.primary, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Terms of Service',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'By signing up with Google, you agree to:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildTermItem('Our Terms of Service and Privacy Policy'),
+              _buildTermItem('Allow access to your Google profile (name, email, photo)'),
+              _buildTermItem('Receive notifications about recipes and updates'),
+              _buildTermItem('Follow our community guidelines'),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'We will never share your information without your permission.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue[900],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.check, size: 18),
+            label: const Text('Accept & Continue'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // If user accepted, proceed with Google sign up
+    if (accepted == true) {
+      await _handleGoogleSignUp();
+    }
+  }
+
+  Widget _buildTermItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, left: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.check_circle,
+            size: 18,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -232,7 +371,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   children: [
                     Text(
                       "Already have an account? ",
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(color: AppColors.thirdary),
                     ),
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),

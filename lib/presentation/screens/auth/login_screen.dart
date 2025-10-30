@@ -40,40 +40,55 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      print('Login successful - AuthWrapper will handle navigation');
-      // AuthWrapper will automatically redirect based on email verification status
     } else {
-      print('❌ Login failed: ${authProvider.error}');
+      String errorMsg = authProvider.error ?? 'Login failed';
+      
+      // Better error messages
+      if (errorMsg.contains('user-not-found') || errorMsg.contains('wrong-password')) {
+        errorMsg = 'Invalid email or password';
+      } else if (errorMsg.contains('too-many-requests')) {
+        errorMsg = 'Too many attempts. Please try again later';
+      } else if (errorMsg.contains('network')) {
+        errorMsg = 'Network error. Check your connection';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.error ?? 'Login failed'),
+          content: Text(errorMsg),
           backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
   }
 
   Future<void> _handleGoogleSignIn() async {
-    print('🔍 Starting Google Sign In...');
-
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.signInWithGoogle();
 
     if (!mounted) return;
 
     if (success) {
-      print('Google sign in successful - AuthWrapper will handle navigation');
-      // AuthWrapper will automatically redirect to MainScreen (Google accounts are auto-verified)
-    } else {
-      print('❌ Google sign in failed: ${authProvider.error}');
-      if (authProvider.error != null && authProvider.error!.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authProvider.error!),
-            backgroundColor: AppColors.error,
-          ),
-        );
+      // AuthWrapper will handle navigation
+    } else if (authProvider.error != null && authProvider.error!.isNotEmpty) {
+      String errorMsg = authProvider.error!;
+      
+      // User-friendly messages
+      if (errorMsg.contains('account-exists')) {
+        errorMsg = 'Account found! Logging you in...';
+      } else if (errorMsg.contains('network')) {
+        errorMsg = 'Network error. Check your connection';
+      } else if (errorMsg.contains('cancelled')) {
+        return;
       }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -160,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                     child: const Text(
                       'Forgot password?',
-                      style: TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: AppColors.thirdary),
                     ),
                   ),
                 ),
@@ -204,7 +219,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text(
                       "Don't have an account? ",
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(color: AppColors.thirdary),
                     ),
                     TextButton(
                       onPressed: () {
