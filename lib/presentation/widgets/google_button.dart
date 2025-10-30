@@ -21,7 +21,7 @@ class GoogleButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: Colors.grey[300]!),
+          side: BorderSide(color: AppColors.thirdary),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -51,7 +51,7 @@ class GoogleButton extends StatelessWidget {
                     text,
                     style: const TextStyle(
                       fontSize: 16,
-                      color: AppColors.textPrimary,
+                      color: AppColors.secondary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

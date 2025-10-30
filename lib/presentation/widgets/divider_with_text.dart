@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:recipe_daily/core/constants/app_colors.dart';
 
 class DividerWithText extends StatelessWidget {
   final String text;
@@ -14,7 +15,7 @@ class DividerWithText extends StatelessWidget {
       children: [
         Expanded(
           child: Divider(
-            color: Colors.grey[300],
+            color: AppColors.thirdary,
             thickness: 1,
           ),
         ),
@@ -23,14 +24,14 @@ class DividerWithText extends StatelessWidget {
           child: Text(
             text,
             style: TextStyle(
-              color: Colors.grey[600],
+              color: AppColors.thirdary,
               fontSize: 14,
             ),
           ),
         ),
         Expanded(
           child: Divider(
-            color: Colors.grey[300],
+            color: AppColors.thirdary,
             thickness: 1,
           ),
         ),

@@ -37,7 +37,7 @@ class EmptyStateWidget extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: AppColors.secondary,
               ),
             ),
             if (subtitle != null) ...[

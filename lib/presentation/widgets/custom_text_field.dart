@@ -40,16 +40,16 @@ class _CustomTextFieldState extends State<CustomTextField> {
       maxLines: widget.isPassword ? 1 : widget.maxLines,
       style: const TextStyle(
         fontSize: 16,
-        color: AppColors.textPrimary,
+        color: AppColors.secondary,
       ),
       decoration: InputDecoration(
         prefixIcon: Icon(
           widget.prefixIcon,
-          color: AppColors.textSecondary,
+          color: AppColors.primary,
         ),
         hintText: widget.hintText,
         hintStyle: TextStyle(
-          color: Colors.grey[400],
+          color: AppColors.thirdary,
           fontSize: 16,
         ),
         suffixIcon: widget.isPassword
@@ -58,7 +58,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                   _obscureText
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
-                  color: AppColors.textSecondary,
+                  color: AppColors.primary,
                 ),
                 onPressed: () {
                   setState(() {
@@ -69,11 +69,11 @@ class _CustomTextFieldState extends State<CustomTextField> {
             : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
+          borderSide: BorderSide(color: AppColors.thirdary),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
+          borderSide: BorderSide(color: AppColors.thirdary),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

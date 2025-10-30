@@ -30,7 +30,7 @@ class CustomErrorWidget extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 16,
-                color: AppColors.textPrimary,
+                color: AppColors.secondary,
               ),
             ),
             if (onRetry != null) ...[
