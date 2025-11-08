@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:recipe_daily/firebase_options.dart';
+import 'package:recipe_daily/presentation/providers/recipe_provider.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/screens/auth/auth_wrapper.dart';
 import 'core/constants/app_colors.dart';
+import 'core/services/calorie_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Initialize Firebase
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -17,6 +20,12 @@ void main() async {
   } catch (e) {
     print('Failed to initialize Firebase: $e');
   };
+
+  // Initialize Calorie Service
+  print('Initializing CalorieService...');
+  await CalorieService().initialize();
+  print('CalorieService initialized');
+
   runApp(const RecipeDailyApp());
 }
 
@@ -28,6 +37,7 @@ class RecipeDailyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => RecipeProvider()),
       ],
       child: MaterialApp(
         title: 'Recipe Daily',
