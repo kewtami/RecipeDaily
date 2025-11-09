@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'profile_screen.dart';
+import 'recipes/create_recipe_screen.dart';
+import 'home_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -15,7 +17,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const SavedScreen(),
-    const CreateScreen(),
+    const CreateRecipeScreen(),
     const NotificationsScreen(),
     const ProfileScreen(),
   ];
@@ -66,22 +68,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home'),
-      ),
-      body: const Center(
-        child: Text('Home Screen - Coming Soon!'),
-      ),
-    );
-  }
-}
-
 class SavedScreen extends StatelessWidget {
   const SavedScreen({Key? key}) : super(key: key);
 
@@ -93,22 +79,6 @@ class SavedScreen extends StatelessWidget {
       ),
       body: const Center(
         child: Text('Saved Screen - Coming Soon!'),
-      ),
-    );
-  }
-}
-
-class CreateScreen extends StatelessWidget {
-  const CreateScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Recipe'),
-      ),
-      body: const Center(
-        child: Text('Create Screen - Coming Soon!'),
       ),
     );
   }
