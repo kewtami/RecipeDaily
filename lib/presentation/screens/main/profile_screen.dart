@@ -3,9 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import '../../providers/auth_provider.dart';
 import '../../providers/recipe_provider.dart';
+import '../../widgets/recipes/recipe_cards.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/recipe_model.dart';
-import 'recipes/recipe_detail_screen.dart';
+import 'recipes/my_recipe_detail_screen.dart';
 import 'recipes/edit_recipe_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -23,7 +24,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     
-    // Load user's recipes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
@@ -57,14 +57,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             final userRecipes = recipeProvider.recipes;
             final recipesCount = userRecipes.length;
             
-            // Mock data for now - you can implement these later
-            final followingCount = 1274; // 1.27K
+            final followingCount = 1274;
             final followersCount = 112;
-            final likesCount = 30700; // 30.7K
+            final likesCount = 30700;
             
             return CustomScrollView(
               slivers: [
-                // Header with menu
+                // App Bar with More Button
                 SliverAppBar(
                   backgroundColor: Colors.white,
                   elevation: 0,
@@ -82,7 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 SliverToBoxAdapter(
                   child: Column(
                     children: [
-                      // Avatar
+                      // Avatar with Edit Icon
                       Stack(
                         children: [
                           CircleAvatar(
@@ -93,10 +92,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 : null,
                             child: user?.photoURL == null
                                 ? const Icon(
-                                    Icons.person,
-                                    size: 60,
-                                    color: Colors.white,
-                                  )
+                                  Icons.person, 
+                                  size: 60, 
+                                  color: Colors.white
+                                )
                                 : null,
                           ),
                           Positioned(
@@ -109,9 +108,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
-                                Icons.edit,
-                                size: 16,
-                                color: Colors.white,
+                                Icons.edit, 
+                                size: 16, 
+                                color: Colors.white
                               ),
                             ),
                           ),
@@ -120,7 +119,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                       
                       const SizedBox(height: 16),
                       
-                      // Name
+                      // User Name
                       Text(
                         user?.displayName ?? 'User',
                         style: const TextStyle(
@@ -164,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                       
                       const SizedBox(height: 24),
                       
-                      // Tabs
+                      // Tab Selector
                       Container(
                         margin: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
@@ -182,8 +181,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                         ? AppColors.primary 
                                         : Colors.white,
                                     border: Border.all(
-                                      color: AppColors.primary,
-                                      width: 2,
+                                      color: AppColors.primary, 
+                                      width: 2
                                     ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -216,7 +215,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                         : Colors.white,
                                     border: Border.all(
                                       color: AppColors.primary,
-                                      width: 2,
+                                      width: 2
                                     ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -243,7 +242,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   ),
                 ),
                 
-                // Recipes Grid
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   sliver: _tabController.index == 0
@@ -273,8 +271,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
+            fontSize: 12, 
+            color: Colors.grey[600]
           ),
         ),
       ],
@@ -316,14 +314,26 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.85,
+        childAspectRatio: 0.75,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
       delegate: SliverChildBuilderDelegate(
         (context, index) {
           final recipe = recipes[index];
-          return _buildRecipeCard(recipe);
+          return RecipeCard(
+            recipe: recipe,
+            showMoreButton: true,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MyRecipeDetailScreen(recipeId: recipe.id),
+                ),
+              );
+            },
+            onMoreTap: () => _showRecipeOptions(context, recipe),
+          );
         },
         childCount: recipes.length,
       ),
@@ -331,7 +341,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   }
 
   Widget _buildLikedGrid() {
-    // TODO: Implement liked recipes functionality
     return SliverFillRemaining(
       child: Center(
         child: Column(
@@ -347,196 +356,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         ),
       ),
     );
-  }
-
-  Widget _buildRecipeCard(RecipeModel recipe) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => RecipeDetailScreen(recipeId: recipe.id),
-          ),
-        );
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Square Image Container
-          AspectRatio(
-            aspectRatio: 1.0,
-            child: Stack(
-              children: [
-                // Recipe Image
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: recipe.coverImageUrl != null
-                      ? Image.network(
-                          recipe.coverImageUrl!,
-                          width: double.infinity,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.image, size: 48),
-                            );
-                          },
-                        )
-                      : Container(
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.image, size: 48),
-                        ),
-                ),
-                
-                // Gradient overlay
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.7),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                
-                // Bookmark button
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.bookmark,
-                      size: 20,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-                
-                // More options button
-                Positioned(
-                  top: 8,
-                  right: 48,
-                  child: GestureDetector(
-                    onTap: () => _showRecipeOptions(context, recipe),
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.more_horiz,
-                        size: 20,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                ),
-                
-                // Duration badge
-                Positioned(
-                  bottom: 60,
-                  left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _formatDuration(recipe.cookTime),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                
-                // Recipe info
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          recipe.title,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.local_fire_department,
-                              size: 14,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${recipe.totalCalories} Kcal',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const Spacer(),
-                            Text(
-                              recipe.difficulty.displayName,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes;
-    if (minutes < 60) {
-      return '${minutes} mins';
-    } else {
-      final hours = duration.inHours;
-      final remainingMinutes = minutes % 60;
-      if (remainingMinutes == 0) {
-        return '${hours}h';
-      }
-      return '${hours}h ${remainingMinutes}m';
-    }
   }
 
   void _showMoreMenu(BuildContext context) {
@@ -556,7 +375,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 title: const Text('Edit Profile'),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Navigate to edit profile
                 },
               ),
               ListTile(
@@ -564,7 +382,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 title: const Text('Settings'),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Navigate to settings
                 },
               ),
               ListTile(
@@ -572,7 +389,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 title: const Text('Help & Support'),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Navigate to help
                 },
               ),
               ListTile(
@@ -580,7 +396,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 title: const Text('Privacy Policy'),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Navigate to privacy policy
                 },
               ),
               const Divider(),
@@ -643,14 +458,14 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               );
               
               final authProvider = Provider.of<AuthProvider>(
-                context,
-                listen: false,
+                context, 
+                listen: false
               );
               await authProvider.signOut();
             },
             child: const Text(
-              'Logout',
-              style: TextStyle(color: AppColors.error),
+              'Logout', 
+              style: TextStyle(color: AppColors.error)
             ),
           ),
         ],
@@ -726,17 +541,14 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             ),
             TextButton(
               onPressed: isDeleting ? null : () async {
-                if (!isGoogleUser) {
-                  final password = passwordController.text;
-                  if (password.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter your password'),
-                        backgroundColor: AppColors.error,
-                      ),
-                    );
-                    return;
-                  }
+                if (!isGoogleUser && passwordController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter your password'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                  return;
                 }
 
                 setState(() {
@@ -744,9 +556,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 });
                 
                 try {
-                  if (user == null) {
-                    throw Exception('No user logged in');
-                  }
+                  if (user == null) throw Exception('No user logged in');
 
                   if (isGoogleUser) {
                     await user.delete();
@@ -766,12 +576,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('✅ Account deleted successfully'),
+                        content: Text('Account deleted successfully'),
                         backgroundColor: AppColors.success,
                       ),
                     );
                   }
-                  
                 } on FirebaseAuthException catch (e) {
                   setState(() {
                     isDeleting = false;
@@ -825,8 +634,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 : const Text(
                     'Delete',
                     style: TextStyle(
-                      color: AppColors.error,
-                      fontWeight: FontWeight.bold,
+                      color: AppColors.error, 
+                      fontWeight: FontWeight.bold
                     ),
                   ),
             ),
@@ -864,16 +673,16 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   
                   if (result == true && mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
+                      const SnackBar(
                         content: Row(
-                          children: const [
+                          children: [
                             Icon(Icons.check_circle, color: Colors.white, size: 20),
                             SizedBox(width: 12),
                             Text('Recipe updated successfully!'),
                           ],
                         ),
                         backgroundColor: AppColors.success,
-                        duration: const Duration(seconds: 2),
+                        duration: Duration(seconds: 2),
                       ),
                     );
                     
@@ -905,16 +714,16 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 onTap: () {
                   Navigator.pop(modalContext);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
+                    const SnackBar(
                       content: Row(
-                        children: const [
+                        children: [
                           Icon(Icons.share, color: Colors.white, size: 20),
                           SizedBox(width: 12),
                           Text('Share feature coming soon!'),
                         ],
                       ),
                       backgroundColor: AppColors.primary,
-                      duration: const Duration(seconds: 2),
+                      duration: Duration(seconds: 2),
                     ),
                   );
                 },
@@ -931,8 +740,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Row(
-            children: const [
+          title: const Row(
+            children: [
               Icon(Icons.warning, color: AppColors.error),
               SizedBox(width: 12),
               Text('Delete Recipe?'),
@@ -951,9 +760,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 Navigator.pop(dialogContext);
                 
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                  const SnackBar(
                     content: Row(
-                      children: const [
+                      children: [
                         SizedBox(
                           width: 16,
                           height: 16,
@@ -966,7 +775,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         Text('Deleting recipe...'),
                       ],
                     ),
-                    duration: const Duration(seconds: 2),
+                    duration: Duration(seconds: 2),
                   ),
                 );
                 
@@ -976,16 +785,16 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
+                      const SnackBar(
                         content: Row(
-                          children: const [
+                          children: [
                             Icon(Icons.check_circle, color: Colors.white, size: 20),
                             SizedBox(width: 12),
                             Text('Recipe deleted successfully'),
                           ],
                         ),
                         backgroundColor: AppColors.success,
-                        duration: const Duration(seconds: 2),
+                        duration: Duration(seconds: 2),
                       ),
                     );
                     
@@ -1017,9 +826,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               child: const Text(
                 'Delete',
                 style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                ),
+                  color: Colors.red, 
+                  fontWeight: FontWeight.bold
+                  ),
               ),
             ),
           ],

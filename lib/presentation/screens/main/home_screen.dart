@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/recipe_model.dart';
 import '../../providers/recipe_provider.dart';
+import '../../widgets/recipes/recipe_cards.dart';
 import 'recipes/recipe_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -89,10 +90,10 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // Header with Logo
             _buildHeader(),
-            
+
             // Search Bar
             _buildSearchBar(),
-            
+
             // Search Results or Main Content
             Expanded(
               child: _isSearching || _searchController.text.isNotEmpty
@@ -112,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           // Logo
           Image.asset(
-            'assets/images/logo.png', // Your Recipe Daily logo
+            'assets/images/logo.png',
             height: 50,
             errorBuilder: (context, error, stackTrace) {
               return const Text(
@@ -136,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          // Back arrow (only show when searching)
+          // Back Button
           if (_isSearching || _searchController.text.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.arrow_back, color: AppColors.primary),
@@ -211,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: _showFilterModal,
             ),
           
-          // Filter icon with selected tags (when searching)
+          // Filter button during search with active filters
           if (_searchController.text.isNotEmpty && (_selectedDifficulty != null || _selectedTags.isNotEmpty))
             IconButton(
               icon: const Icon(Icons.filter_list, color: AppColors.primary),
@@ -247,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 24),
             ],
             
-            // Suggestions
+            // Search Suggestions
             const Text(
               'Suggestions',
               style: TextStyle(
@@ -318,7 +319,17 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             itemCount: recipes.length,
             itemBuilder: (context, index) {
-              return _buildRecipeCard(recipes[index]);
+              return RecipeCard(
+                recipe: recipes[index],
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RecipeDetailScreen(recipeId: recipes[index].id),
+                    ),
+                  );
+                },
+              );
             },
           );
         },
@@ -350,21 +361,21 @@ class _HomeScreenState extends State<HomeScreen> {
               
               const SizedBox(height: 32),
               
-              // Popular Recipes
+              // Popular Recipes Section
               _buildSectionHeader('Popular Recipes', onSeeAll: () {}),
               const SizedBox(height: 12),
               _buildPopularRecipes(recipes),
               
               const SizedBox(height: 32),
               
-              // Recommend
+              // Recommend Section
               _buildSectionHeader('Recommend', onSeeAll: () {}),
               const SizedBox(height: 12),
               _buildRecommendSection(recipes),
               
               const SizedBox(height: 32),
               
-              // Popular Creators
+              // Popular Creators Section
               _buildSectionHeader('Popular Creators', onSeeAll: () {}),
               const SizedBox(height: 12),
               _buildPopularCreators(),
@@ -410,14 +421,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildTrendingSection(List<RecipeModel> recipes) {
     return SizedBox(
-      height: 280,
+      height: 400,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: recipes.length,
         itemBuilder: (context, index) {
           final recipe = recipes[index];
-          return GestureDetector(
+          return TrendingRecipeCard(
+            recipe: recipe,
             onTap: () {
               Navigator.push(
                 context,
@@ -426,161 +438,34 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               );
             },
-            child: Container(
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPopularRecipes(List<RecipeModel> recipes) {
+    return SizedBox(
+      height: 250,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: recipes.length > 6 ? 6 : recipes.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: SizedBox(
               width: 200,
-              margin: const EdgeInsets.only(right: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Author info
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundImage: recipe.authorPhotoUrl != null
-                            ? NetworkImage(recipe.authorPhotoUrl!)
-                            : null,
-                        child: recipe.authorPhotoUrl == null
-                            ? Text(
-                                recipe.authorName[0].toUpperCase(),
-                                style: const TextStyle(fontSize: 10),
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'By ${recipe.authorName}',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Recipe image
-                  Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: recipe.coverImageUrl != null
-                            ? Image.network(
-                                recipe.coverImageUrl!,
-                                width: 200,
-                                height: 150,
-                                fit: BoxFit.cover,
-                              )
-                            : Container(
-                                width: 200,
-                                height: 150,
-                                color: Colors.grey[300],
-                                child: const Icon(Icons.image),
-                              ),
-                      ),
-                      
-                      // Likes badge
-                      Positioned(
-                        top: 8,
-                        left: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.favorite, size: 14, color: Colors.red),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${recipe.likesCount}',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      
-                      // Bookmark button
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.bookmark_border, size: 18, color: AppColors.primary),
-                        ),
-                      ),
-                      
-                      // Play button (if video)
-                      if (recipe.coverVideoUrl != null)
-                        const Positioned.fill(
-                          child: Center(
-                            child: Icon(
-                              Icons.play_circle_outline,
-                              size: 48,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      
-                      // Duration
-                      Positioned(
-                        bottom: 8,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _formatDuration(recipe.cookTime),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // Recipe title
-                  Text(
-                    recipe.title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E3A8A),
+              child: RecipeCard(
+                recipe: recipes[index],
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RecipeDetailScreen(recipeId: recipes[index].id),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  
-                  const SizedBox(height: 4),
-                  
-                  // Stats
-                  Row(
-                    children: [
-                      const Icon(Icons.local_fire_department, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${recipe.totalCalories} Kcal',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      const Spacer(),
-                      Text(
-                        recipe.difficulty.displayName,
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ],
+                  );
+                },
               ),
             ),
           );
@@ -589,154 +474,32 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPopularRecipes(List<RecipeModel> recipes) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          childAspectRatio: 0.75,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-        ),
-        itemCount: recipes.length > 6 ? 6 : recipes.length,
-        itemBuilder: (context, index) {
-          return _buildRecipeCard(recipes[index]);
-        },
-      ),
-    );
-  }
-
   Widget _buildRecommendSection(List<RecipeModel> recipes) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          childAspectRatio: 0.75,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-        ),
+    return SizedBox(
+      height: 250,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: recipes.length > 6 ? 6 : recipes.length,
         itemBuilder: (context, index) {
-          return _buildRecipeCard(recipes[index]);
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: SizedBox(
+              width: 200,
+              child: RecipeCard(
+                recipe: recipes[index],
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RecipeDetailScreen(recipeId: recipes[index].id),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
         },
-      ),
-    );
-  }
-
-  Widget _buildRecipeCard(RecipeModel recipe) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => RecipeDetailScreen(recipeId: recipe.id),
-          ),
-        );
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Square Image
-          AspectRatio(
-            aspectRatio: 1.0, // Square ratio
-            child: Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: recipe.coverImageUrl != null
-                      ? Image.network(
-                          recipe.coverImageUrl!,
-                          width: double.infinity,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                        )
-                      : Container(
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.image),
-                        ),
-                ),
-                
-                // Bookmark
-                Positioned(
-                  top: 6,
-                  right: 6,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.bookmark_border, size: 16, color: AppColors.primary),
-                  ),
-                ),
-                
-                // Duration
-                Positioned(
-                  bottom: 6,
-                  left: 6,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      _formatDuration(recipe.cookTime),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 6),
-          
-          // Title
-          Text(
-            recipe.title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1E3A8A),
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          
-          const SizedBox(height: 3),
-          
-          // Stats
-          Row(
-            children: [
-              const Icon(Icons.local_fire_department, size: 11, color: Colors.grey),
-              const SizedBox(width: 2),
-              Expanded(
-                child: Text(
-                  '${recipe.totalCalories} Kcal',
-                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Text(
-                recipe.difficulty.displayName,
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -804,7 +567,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: Column(
             children: [
-              // Header
+              //Header
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Row(
@@ -930,19 +693,5 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
-  }
-
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes;
-    if (minutes < 60) {
-      return '${minutes} mins';
-    } else {
-      final hours = duration.inHours;
-      final remainingMinutes = minutes % 60;
-      if (remainingMinutes == 0) {
-        return '${hours}h';
-      }
-      return '${hours}h ${remainingMinutes}m';
-    }
   }
 }
