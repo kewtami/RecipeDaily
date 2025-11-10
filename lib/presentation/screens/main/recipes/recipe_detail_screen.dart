@@ -853,12 +853,12 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           child: Image.network(
                             step.imageUrl!,
                             width: double.infinity,
-                            height: 180,
+                            height: 300,
                             fit: BoxFit.cover,
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
                               return Container(
-                                height: 180,
+                                height: 300,
                                 color: Colors.grey[200],
                                 child: Center(
                                   child: CircularProgressIndicator(
@@ -873,7 +873,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             },
                             errorBuilder: (context, error, stackTrace) {
                               return Container(
-                                height: 180,
+                                height: 300,
                                 color: Colors.grey[300],
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
