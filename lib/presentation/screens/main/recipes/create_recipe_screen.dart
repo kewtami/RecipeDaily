@@ -8,6 +8,7 @@ import '../../../../core/models/recipe_model.dart';
 import '../../../../core/services/calorie_service.dart';
 import '../../../providers/recipe_provider.dart';
 import '../../../widgets/custom_button.dart';
+import '../home_screen.dart';
 
 class CreateRecipeScreen extends StatefulWidget {
   const CreateRecipeScreen({Key? key}) : super(key: key);
@@ -481,14 +482,17 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
               children: const [
                 Icon(Icons.check_circle, color: Colors.white, size: 20),
                 SizedBox(width: 12),
-                Text('✅ Recipe created successfully!'),
+                Text('Recipe created successfully!'),
               ],
             ),
             backgroundColor: AppColors.success,
             duration: const Duration(seconds: 2),
           ),
         );
-        Navigator.pop(context);
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (route) => false,
+        ); // Go back to home
       }
     } catch (e) {
       if (mounted) {
