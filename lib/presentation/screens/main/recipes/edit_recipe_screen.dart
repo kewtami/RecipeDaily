@@ -276,7 +276,7 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
       // Upload new cover image if changed
       String coverImageUrl = _existingCoverImageUrl ?? '';
       if (_coverImage != null) {
-        print('📤 Uploading new cover image...');
+        print('Uploading new cover image...');
         coverImageUrl = await recipeProvider.uploadImage(_coverImage!, 'recipes/covers');
       }
 
@@ -293,7 +293,7 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
           .toList();
 
       // Prepare steps with images
-      print('📤 Processing step images...');
+      print('Processing step images...');
       final List<RecipeStep> steps = [];
       
       for (var step in _steps) {
@@ -350,7 +350,7 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
       if (mounted && success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Recipe updated successfully!'),
+            content: Text('Recipe updated successfully!'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -520,9 +520,6 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
     );
   }
 
-  // Rest of the build methods are identical to CreateRecipeScreen
-  // (Copy all the _build methods from create_recipe_screen.dart)
-
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
@@ -672,9 +669,6 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
     );
   }
 
-  // Copy remaining build methods from create_recipe_screen.dart
-  // (_buildIngredientsSection, _buildStepsSection, _buildTagsSection, etc.)
-  
   Widget _buildIngredientsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -727,7 +721,6 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
   }
 
   Widget _buildIngredientRow(IngredientInput ing, int index) {
-    // Copy implementation from create_recipe_screen.dart
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -1024,7 +1017,7 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
           
           const SizedBox(height: 12),
           
-          // Image Picker - Show existing or new image
+          // Image Picker
           if (step.imageFile != null || step.existingImageUrl != null)
             Stack(
               children: [
@@ -1180,7 +1173,6 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
   }
 }
 
-// Helper Classes (same as CreateRecipeScreen)
 class IngredientInput {
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
