@@ -12,7 +12,7 @@ class CalorieService {
   // Initialize the service by loading the calorie database
   Future<void> initialize() async {
     try {
-      print('🔧 Loading calorie database...');
+      print('Loading calorie database...');
       final String data = await rootBundle.loadString('assets/data/calories.json');
       final Map<String, dynamic> json = jsonDecode(data);
       _calorieDatabase = json.map((key, value) => MapEntry(key, value as int));
@@ -47,7 +47,7 @@ class CalorieService {
     // Apply cooking method multiplier
     calories *= cookingMethod.calorieMultiplier;
 
-    print('📊 Calculated: $ingredientName ${quantity}${unit} (${cookingMethod.displayName}) = ${calories.round()} kcal');
+    print('Calculated: $ingredientName ${quantity}${unit} (${cookingMethod.displayName}) = ${calories.round()} kcal');
 
     return calories.round();
   }
