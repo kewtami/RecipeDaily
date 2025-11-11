@@ -28,9 +28,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<RecipeProvider>(context, listen: false).subscribeToRecipes();
+      final provider = Provider.of<RecipeProvider>(context, listen: false);
+      
+      // Check if recipes already loaded
+      if (provider.recipes.isEmpty) {
+        print('Loading recipes from Firebase...');
+        provider.subscribeToRecipes();
+      } else {
+        print('Using cached recipes (${provider.recipes.length} items)');
+      }
     });
-    
+
     _searchFocusNode.addListener(() {
       setState(() {
         _isSearching = _searchFocusNode.hasFocus;
