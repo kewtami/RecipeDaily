@@ -8,7 +8,6 @@ import '../../widgets/recipes/recipe_options_bottom_sheet.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/recipe_model.dart';
 import 'recipes/my_recipe_detail_screen.dart';
-import 'recipes/edit_recipe_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
