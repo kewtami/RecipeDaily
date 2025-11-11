@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:recipe_daily/presentation/screens/main/main_screen.dart';
 import 'dart:io';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/recipe_model.dart';
 import '../../../../core/services/calorie_service.dart';
 import '../../../providers/recipe_provider.dart';
 import '../../../widgets/custom_button.dart';
-import '../home_screen.dart';
 
 class CreateRecipeScreen extends StatefulWidget {
   const CreateRecipeScreen({Key? key}) : super(key: key);
@@ -490,7 +490,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
           ),
         );
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const MainScreen()),
           (route) => false,
         ); // Go back to home
       }
