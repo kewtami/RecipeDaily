@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/recipe_model.dart';
 import '../../../providers/recipe_provider.dart';
-import 'edit_recipe_screen.dart';
+import '../../../widgets/recipes/recipe_options_bottom_sheet.dart';
 
 class MyRecipeDetailScreen extends StatefulWidget {
   final String recipeId;
@@ -718,111 +718,11 @@ class _MyRecipeDetailScreenState extends State<MyRecipeDetailScreen> {
   }
 
   void _showMoreOptions(BuildContext context, RecipeModel recipe) {
-    showModalBottomSheet(
+    RecipeOptionsBottomSheet.show(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.share, color: AppColors.primary),
-                title: const Text('Share Recipe'),
-                onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Share feature coming soon!')),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.edit, color: AppColors.primary),
-                title: const Text('Edit Recipe'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => EditRecipeScreen(recipe: recipe),
-                    ),
-                  );
-                  
-                  if (result == true && mounted) {
-                    _loadRecipe();
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('Delete Recipe'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _confirmDelete(context, recipe);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _confirmDelete(BuildContext context, RecipeModel recipe) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Row(
-            children: const [
-              Icon(Icons.warning, color: AppColors.error),
-              SizedBox(width: 12),
-              Text('Delete Recipe?'),
-            ],
-          ),
-          content: Text('Are you sure you want to delete "${recipe.title}"?\n\nThis action cannot be undone.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(dialogContext);
-                
-                try {
-                  final provider = Provider.of<RecipeProvider>(context, listen: false);
-                  await provider.deleteRecipe(recipe.id);
-                  
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Recipe deleted successfully'),
-                        backgroundColor: AppColors.success,
-                      ),
-                    );
-                    Navigator.pop(context);
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Failed to delete: $e'),
-                        backgroundColor: AppColors.error,
-                      ),
-                    );
-                  }
-                }
-              },
-              child: const Text('Delete', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
+      recipe: recipe,
+      mode: 'owner',
+      onEdited: () => _loadRecipe(), 
     );
   }
 }
