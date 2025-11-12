@@ -11,6 +11,7 @@ class RecipeOptionsBottomSheet extends StatelessWidget {
   final String mode; // 'owner' or 'viewer'
   final VoidCallback? onDeleted;
   final VoidCallback? onEdited;
+  final bool shouldPopAfterDelete;
 
   const RecipeOptionsBottomSheet({
     Key? key,
@@ -18,6 +19,7 @@ class RecipeOptionsBottomSheet extends StatelessWidget {
     required this.mode,
     this.onDeleted,
     this.onEdited,
+    this.shouldPopAfterDelete = true,
   }) : super(key: key);
 
   // Show the bottom sheet
@@ -27,17 +29,19 @@ class RecipeOptionsBottomSheet extends StatelessWidget {
     required String mode,
     VoidCallback? onDeleted,
     VoidCallback? onEdited,
+    bool shouldPopAfterDelete = true,
   }) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => RecipeOptionsBottomSheet(
+      builder: (modalContext) => RecipeOptionsBottomSheet(
         recipe: recipe,
         mode: mode,
         onDeleted: onDeleted,
         onEdited: onEdited,
+        shouldPopAfterDelete: shouldPopAfterDelete,
       ),
     );
   }
@@ -55,7 +59,9 @@ class RecipeOptionsBottomSheet extends StatelessWidget {
             title: const Text('Share Recipe'),
             onTap: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
+              // Using root navigator to show snackbar on the main scaffold
+              final parentContext = Navigator.of(context, rootNavigator: true).context;
+              ScaffoldMessenger.of(parentContext).showSnackBar(
                 const SnackBar(
                   content: Row(
                     children: [
@@ -77,38 +83,40 @@ class RecipeOptionsBottomSheet extends StatelessWidget {
               leading: const Icon(Icons.edit, color: AppColors.primary),
               title: const Text('Edit Recipe'),
               onTap: () async {
+                // Save parent context before closing modal
+                final parentNavigator = Navigator.of(context, rootNavigator: true);
                 Navigator.pop(context);
 
-                final result = await Navigator.push(
-                  context,
+                final result = await parentNavigator.push(
                   MaterialPageRoute(
                     builder: (context) => EditRecipeScreen(recipe: recipe),
                   ),
                 );
 
-                if (result == true && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Row(
-                        children: [
-                          Icon(Icons.check_circle, color: Colors.white, size: 20),
-                          SizedBox(width: 12),
-                          Text('Recipe updated successfully!'),
-                        ],
+                if (result == true) {
+                  final scaffoldContext = parentNavigator.context;
+                  if (scaffoldContext.mounted) {
+                    ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                      const SnackBar(
+                        content: Row(
+                          children: [
+                            Icon(Icons.check_circle, color: Colors.white, size: 20),
+                            SizedBox(width: 12),
+                            Text('Recipe updated successfully!'),
+                          ],
+                        ),
+                        backgroundColor: AppColors.success,
+                        duration: Duration(seconds: 2),
                       ),
-                      backgroundColor: AppColors.success,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
+                    );
 
-                  // Callback when edited
-                  onEdited?.call();
+                    onEdited?.call();
 
-                  // Reload user recipes
-                  final user = FirebaseAuth.instance.currentUser;
-                  if (user != null) {
-                    Provider.of<RecipeProvider>(context, listen: false)
-                        .subscribeToUserRecipes(user.uid);
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user != null) {
+                      Provider.of<RecipeProvider>(scaffoldContext, listen: false)
+                          .subscribeToUserRecipes(user.uid);
+                    }
                   }
                 }
               },
@@ -121,8 +129,15 @@ class RecipeOptionsBottomSheet extends StatelessWidget {
               leading: const Icon(Icons.delete, color: Colors.red),
               title: const Text('Delete Recipe'),
               onTap: () {
+                // Get root navigator before closing modal
+                final rootNavigator = Navigator.of(context, rootNavigator: true);
+                final rootContext = rootNavigator.context;
+                
+                // Close bottom sheet first
                 Navigator.pop(context);
-                _showDeleteConfirmation(context);
+                
+                // Then show delete confirmation dialog
+                _showDeleteConfirmation(rootContext, rootNavigator);
               },
             ),
           ],
@@ -131,9 +146,9 @@ class RecipeOptionsBottomSheet extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context) {
+  void _showDeleteConfirmation(BuildContext parentContext, NavigatorState parentNavigator) {
     showDialog(
-      context: context,
+      context: parentContext,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Row(
@@ -155,8 +170,9 @@ class RecipeOptionsBottomSheet extends StatelessWidget {
               onPressed: () async {
                 Navigator.pop(dialogContext);
 
-                // Show deleting progress
-                ScaffoldMessenger.of(context).showSnackBar(
+                if (!parentContext.mounted) return;
+
+                ScaffoldMessenger.of(parentContext).showSnackBar(
                   const SnackBar(
                     content: Row(
                       children: [
@@ -177,11 +193,17 @@ class RecipeOptionsBottomSheet extends StatelessWidget {
                 );
 
                 try {
-                  final provider = Provider.of<RecipeProvider>(context, listen: false);
-                  await provider.deleteRecipe(recipe.id);
+                  print('Starting delete for recipe: ${recipe.id}');
+                  final provider = Provider.of<RecipeProvider>(parentContext, listen: false);
+                  print('Provider obtained');
+                  
+                  final success = await provider.deleteRecipe(recipe.id);
+                  print('Delete completed: $success');
 
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  if (parentContext.mounted) {
+                    ScaffoldMessenger.of(parentContext).hideCurrentSnackBar();
+                    
+                    ScaffoldMessenger.of(parentContext).showSnackBar(
                       const SnackBar(
                         content: Row(
                           children: [
@@ -195,7 +217,7 @@ class RecipeOptionsBottomSheet extends StatelessWidget {
                       ),
                     );
 
-                    // Callback when deleted
+                  // Callback when deleted
                     onDeleted?.call();
 
                     // Reload user recipes
@@ -204,11 +226,16 @@ class RecipeOptionsBottomSheet extends StatelessWidget {
                       provider.subscribeToUserRecipes(user.uid);
                     }
 
-                    // Pop the detail screen if we're on it
-                    Navigator.pop(context);
+                    if (shouldPopAfterDelete && parentNavigator.canPop()) {
+                      parentNavigator.pop();
+                    }
                   }
                 } catch (e) {
-                  if (context.mounted) {
+                  print('Delete error: $e');
+                  
+                  if (parentContext.mounted) {
+                    ScaffoldMessenger.of(parentContext).hideCurrentSnackBar();
+                    
                     String errorMsg = 'Failed to delete recipe';
 
                     if (e.toString().contains('network') || 
@@ -220,7 +247,7 @@ class RecipeOptionsBottomSheet extends StatelessWidget {
                     }
 
                     showDialog(
-                      context: context,
+                      context: parentContext,
                       builder: (errorContext) => AlertDialog(
                         title: const Row(
                           children: [
@@ -229,7 +256,18 @@ class RecipeOptionsBottomSheet extends StatelessWidget {
                             Text('Delete Failed'),
                           ],
                         ),
-                        content: Text(errorMsg),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(errorMsg),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Error details: ${e.toString()}',
+                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(errorContext),
@@ -240,7 +278,7 @@ class RecipeOptionsBottomSheet extends StatelessWidget {
                             TextButton(
                               onPressed: () {
                                 Navigator.pop(errorContext);
-                                _showDeleteConfirmation(context);
+                                _showDeleteConfirmation(parentContext, parentNavigator);
                               },
                               child: const Text(
                                 'Retry',
