@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
-import '../../widgets/custom_button.dart';
+import '../../widgets/common/custom_button.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   final String userId;

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/custom_text_field.dart';
-import '../../widgets/google_button.dart';
-import '../../widgets/divider_with_text.dart';
+import '../../widgets/common/custom_button.dart';
+import '../../widgets/common/custom_text_field.dart';
+import '../../widgets/auth/google_button.dart';
+import '../../widgets/auth/divider_with_text.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 
