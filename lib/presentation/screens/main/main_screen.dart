@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../providers/interaction_provider.dart';
 import 'profile_screen.dart';
 import 'recipes/create_recipe_screen.dart';
 import 'home_screen.dart';
+import 'saved_recipes_screen.dart';
+import 'notifications_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -16,11 +21,31 @@ class _MainScreenState extends State<MainScreen> {
 // List of screens for each tab
   final List<Widget> _screens = [
     const HomeScreen(),
-    const SavedScreen(),
+    const SavedRecipesScreen(),
     const CreateRecipeScreen(),
     const NotificationsScreen(),
     const ProfileScreen(),
   ];
+
+  // Initialize interaction subscriptions
+  @override
+  void initState() {
+    super.initState();
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final interactionProvider = Provider.of<InteractionProvider>(
+          context, 
+          listen: false
+        );
+        
+        // Subscribe to user's interactions
+        interactionProvider.subscribeToLikedRecipes(user.uid);
+        interactionProvider.subscribeToSavedRecipes(user.uid);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,38 +88,6 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Profile',
           ),
         ],
-      ),
-    );
-  }
-}
-
-class SavedScreen extends StatelessWidget {
-  const SavedScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Saved Recipes'),
-      ),
-      body: const Center(
-        child: Text('Saved Screen - Coming Soon!'),
-      ),
-    );
-  }
-}
-
-class NotificationsScreen extends StatelessWidget {
-  const NotificationsScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notifications'),
-      ),
-      body: const Center(
-        child: Text('Notifications Screen - Coming Soon!'),
       ),
     );
   }
