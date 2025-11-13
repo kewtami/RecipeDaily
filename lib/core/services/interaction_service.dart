@@ -1,0 +1,171 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/interaction_models.dart';
+
+class InteractionService {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  // ==================== LIKES ====================
+  
+  // Toggle like on a recipe
+  Future<void> toggleLike(String recipeId, String userId) async {
+    final likeQuery = await _firestore
+        .collection('likes')
+        .where('recipeId', isEqualTo: recipeId)
+        .where('userId', isEqualTo: userId)
+        .limit(1)
+        .get();
+
+    if (likeQuery.docs.isEmpty) {
+      // Add like
+      await _firestore.collection('likes').add({
+        'recipeId': recipeId,
+        'userId': userId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // Increment likes count
+      await _firestore.collection('recipes').doc(recipeId).update({
+        'likesCount': FieldValue.increment(1),
+      });
+    } else {
+      // Remove like
+      await _firestore.collection('likes').doc(likeQuery.docs.first.id).delete();
+
+      // Decrement likes count
+      await _firestore.collection('recipes').doc(recipeId).update({
+        'likesCount': FieldValue.increment(-1),
+      });
+    }
+  }
+
+  // Check if user liked a recipe
+  Future<bool> isRecipeLiked(String recipeId, String userId) async {
+    final likeQuery = await _firestore
+        .collection('likes')
+        .where('recipeId', isEqualTo: recipeId)
+        .where('userId', isEqualTo: userId)
+        .limit(1)
+        .get();
+
+    return likeQuery.docs.isNotEmpty;
+  }
+
+  // Get all liked recipe IDs for a user
+  Stream<List<String>> getLikedRecipeIds(String userId) {
+    return _firestore
+        .collection('likes')
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => doc.data()['recipeId'] as String)
+            .toList());
+  }
+  
+  // ==================== SAVED RECIPES ====================
+
+  // Toggle save on a recipe
+  Future<void> toggleSave(String recipeId, String userId) async {
+    final saveQuery = await _firestore
+        .collection('saved_recipes')
+        .where('recipeId', isEqualTo: recipeId)
+        .where('userId', isEqualTo: userId)
+        .limit(1)
+        .get();
+
+    if (saveQuery.docs.isEmpty) {
+      // Add save
+      await _firestore.collection('saved_recipes').add({
+        'recipeId': recipeId,
+        'userId': userId,
+        'savedAt': FieldValue.serverTimestamp(),
+      });
+    } else {
+      // Remove save
+      await _firestore.collection('saved_recipes').doc(saveQuery.docs.first.id).delete();
+    }
+  }
+
+  // Check if user saved a recipe
+  Future<bool> isRecipeSaved(String recipeId, String userId) async {
+    final saveQuery = await _firestore
+        .collection('saved_recipes')
+        .where('recipeId', isEqualTo: recipeId)
+        .where('userId', isEqualTo: userId)
+        .limit(1)
+        .get();
+
+    return saveQuery.docs.isNotEmpty;
+  }
+
+  // Get all saved recipe IDs for a user
+  Stream<List<String>> getSavedRecipeIds(String userId) {
+    return _firestore
+        .collection('saved_recipes')
+        .where('userId', isEqualTo: userId)
+        .orderBy('savedAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => doc.data()['recipeId'] as String)
+            .toList());
+  }
+  
+  // ==================== COMMENTS ====================
+  
+  // Add a comment to a recipe
+  Future<String> addComment({
+    required String recipeId,
+    required String userId,
+    required String userName,
+    String? userPhotoUrl,
+    required String text,
+  }) async {
+    final docRef = await _firestore.collection('comments').add({
+      'recipeId': recipeId,
+      'userId': userId,
+      'userName': userName,
+      'userPhotoUrl': userPhotoUrl,
+      'text': text,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': null,
+    });
+
+    return docRef.id;
+  }
+
+  // Update a comment
+  Future<void> updateComment(String commentId, String newText) async {
+    await _firestore.collection('comments').doc(commentId).update({
+      'text': newText,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // Delete a comment
+  Future<void> deleteComment(String commentId) async {
+    await _firestore.collection('comments').doc(commentId).delete();
+  }
+
+  // Get comments for a recipe
+  Stream<List<RecipeComment>> getComments(String recipeId) {
+    return _firestore
+        .collection('comments')
+        .where('recipeId', isEqualTo: recipeId)
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => RecipeComment.fromFirestore(doc))
+            .toList());
+  }
+
+  // Get comment count for a recipe
+  Future<int> getCommentCount(String recipeId) async {
+    final snapshot = await _firestore
+        .collection('comments')
+        .where('recipeId', isEqualTo: recipeId)
+        .count()
+        .get();
+    
+    return snapshot.count ?? 0;
+  }
+}
