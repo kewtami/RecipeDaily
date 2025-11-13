@@ -8,7 +8,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/recipe_model.dart';
 import '../../../../core/services/calorie_service.dart';
 import '../../../providers/recipe_provider.dart';
-import '../../../widgets/custom_button.dart';
+import '../../../widgets/common/custom_button.dart';
 
 class CreateRecipeScreen extends StatefulWidget {
   const CreateRecipeScreen({Key? key}) : super(key: key);
