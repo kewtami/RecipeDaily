@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/recipe_model.dart';
 import '../../../providers/recipe_provider.dart';
+import '../../../widgets/interactions/like_button.dart';
+import '../../../widgets/interactions/save_button.dart';
+import '../../../widgets/interactions/comments_section.dart';
 import '../../../widgets/recipes/recipe_options_bottom_sheet.dart';
+import '../../../widgets/interactions/step_timer.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final String recipeId;
@@ -19,22 +24,13 @@ class RecipeDetailScreen extends StatefulWidget {
 
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   int _currentServings = 1;
-  bool _isLiked = false;
-  bool _isSaved = false;
   bool _isFollowing = false;
-  final TextEditingController _commentController = TextEditingController();
   String? _loadError;
 
   @override
   void initState() {
     super.initState();
     _loadRecipe();
-  }
-
-  @override
-  void dispose() {
-    _commentController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadRecipe() async {
@@ -48,12 +44,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           _currentServings = provider.currentRecipe!.serves;
           _loadError = null;
         });
-        
-        // Check if recipe is liked
-        _isLiked = await provider.isRecipeLiked(widget.recipeId);
-        if (mounted) {
-          setState(() {});
-        }
       } else {
         setState(() {
           _loadError = 'Recipe not found';
@@ -145,7 +135,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       // Stats Row
                       _buildStatsRow(recipe),
                       const SizedBox(height: 16),
-                      
+
                       // Author Info
                       _buildAuthorInfo(recipe),
                       const SizedBox(height: 24),
@@ -153,25 +143,25 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       // Description
                       _buildDescription(recipe),
                       const SizedBox(height: 32),
-                      
+
                       // Ingredients Section
                       _buildIngredientsSection(recipe),
                       const SizedBox(height: 32),
-                      
+
                       // Steps Section
                       _buildStepsSection(recipe),
                       const SizedBox(height: 32),
-                      
+
                       // Tags Section
                       if (recipe.tags.isNotEmpty) _buildTagsSection(recipe),
                       if (recipe.tags.isNotEmpty) const SizedBox(height: 32),
-                      
+
                       // Author Card
                       _buildAuthorCard(recipe),
                       const SizedBox(height: 32),
-                      
+
                       // Comments Section
-                      _buildCommentsSection(),
+                      CommentsSection(recipeId: widget.recipeId),
                       const SizedBox(height: 100),
                     ],
                   ),
@@ -204,7 +194,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             Text(
               'Loading recipe...',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 16, 
                 color: Colors.grey[600],
               ),
             ),
@@ -278,7 +268,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
+                          horizontal: 24, 
                           vertical: 12,
                         ),
                       ),
@@ -293,7 +283,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       foregroundColor: AppColors.secondary,
                       side: const BorderSide(color: AppColors.secondary),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
+                        horizontal: 24, 
                         vertical: 12,
                       ),
                     ),
@@ -320,7 +310,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withOpacity(0.1), 
                 blurRadius: 8,
               ),
             ],
@@ -338,7 +328,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withOpacity(0.1), 
                   blurRadius: 8,
                 ),
               ],
@@ -346,7 +336,15 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             child: const Icon(Icons.more_horiz, color: AppColors.secondary, size: 20),
           ),
           onPressed: () {
-            _showMoreOptions(context, recipe);
+            final user = FirebaseAuth.instance.currentUser;
+            final isOwner = user?.uid == recipe.authorId;
+            
+            RecipeOptionsBottomSheet.show(
+              context: context,
+              recipe: recipe,
+              mode: isOwner ? 'owner' : 'viewer',
+              onEdited: () => _loadRecipe(),
+            );
           },
         ),
       ],
@@ -380,15 +378,15 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.broken_image,
-                          size: 64,
+                          Icons.broken_image, 
+                          size: 64, 
                           color: Colors.grey[500],
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Image failed to load',
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: Colors.grey[600], 
                             fontSize: 14,
                           ),
                         ),
@@ -403,52 +401,14 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 child: const Icon(Icons.image, size: 64),
               ),
             
-            // Bookmark Button
+            // Save Button
             Positioned(
               bottom: 20,
               right: 20,
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _isSaved = !_isSaved;
-                  });
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: [
-                          Icon(
-                            _isSaved ? Icons.bookmark : Icons.bookmark_border,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(_isSaved ? 'Recipe saved' : 'Recipe unsaved'),
-                        ],
-                      ),
-                      backgroundColor: _isSaved ? AppColors.success : Colors.grey[700],
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    _isSaved ? Icons.bookmark : Icons.bookmark_border,
-                    color: _isSaved ? AppColors.primary : AppColors.secondary,
-                    size: 24,
-                  ),
-                ),
+              child: SaveButton(
+                recipeId: recipe.id,
+                iconSize: 24,
+                useContainer: true,
               ),
             ),
           ],
@@ -479,8 +439,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Icon(
-            Icons.restaurant_menu,
-            color: AppColors.primary,
+            Icons.restaurant_menu, 
+            color: AppColors.primary, 
             size: 24,
           ),
         ),
@@ -501,13 +461,13 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           child: Text(
             recipe.difficulty.displayName,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 14, 
               fontWeight: FontWeight.w500,
             ),
           ),
         ),
         const SizedBox(width: 12),
-        
+
         // Cook Time
         Row(
           children: [
@@ -516,79 +476,20 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             Text(
               _formatDuration(recipe.cookTime),
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 14, 
                 color: Colors.grey[700],
               ),
             ),
           ],
         ),
         const Spacer(),
-        
+
         // Likes
-        GestureDetector(
-          onTap: () async {
-            final provider = Provider.of<RecipeProvider>(context, listen: false);
-            try {
-              await provider.toggleLike(recipe.id);
-              setState(() {
-                _isLiked = !_isLiked;
-              });
-              
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        Icon(
-                          _isLiked ? Icons.favorite : Icons.favorite_border,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(_isLiked ? 'Recipe liked' : 'Like removed'),
-                      ],
-                    ),
-                    backgroundColor: _isLiked ? Colors.red : Colors.grey[700],
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-            } catch (e) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: const [
-                        Icon(Icons.error_outline, color: Colors.white, size: 20),
-                        SizedBox(width: 12),
-                        Text('Failed to update like'),
-                      ],
-                    ),
-                    backgroundColor: AppColors.error,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-            }
-          },
-          child: Row(
-            children: [
-              Icon(
-                _isLiked ? Icons.favorite : Icons.favorite_border,
-                color: _isLiked ? Colors.red : AppColors.primary,
-                size: 20,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '${recipe.likesCount} Likes',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
+        LikeButton(
+          recipeId: recipe.id,
+          likesCount: recipe.likesCount,
+          showCount: true,
+          iconSize: 20,
         ),
       ],
     );
@@ -638,8 +539,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         Text(
           recipe.description,
           style: TextStyle(
-            fontSize: 15,
-            color: Colors.grey[700],
+            fontSize: 15, 
+            color: Colors.grey[700], 
             height: 1.5,
           ),
         ),
@@ -665,7 +566,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               ),
             ),
             const Spacer(),
-            
+
             // Serving Adjuster
             Container(
               decoration: BoxDecoration(
@@ -685,7 +586,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     child: Text(
                       '$_currentServings',
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 16, 
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -705,7 +606,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         Text(
           '$_currentServings servings',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 14, 
             color: Colors.grey[600],
           ),
         ),
@@ -732,8 +633,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   child: RichText(
                     text: TextSpan(
                       style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey[800],
+                        fontSize: 15, 
+                        color: Colors.grey[800], 
                         height: 1.4,
                       ),
                       children: [
@@ -767,7 +668,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         }).toList(),
         
         const SizedBox(height: 16),
-        
+
         // Total Calories
         Center(
           child: Container(
@@ -830,7 +731,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                
+
                 // Step Content
                 Expanded(
                   child: Column(
@@ -839,12 +740,12 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       Text(
                         step.instruction,
                         style: TextStyle(
-                          fontSize: 15,
-                          color: Colors.grey[800],
+                          fontSize: 15, 
+                          color: Colors.grey[800], 
                           height: 1.5,
                         ),
                       ),
-                      
+
                       // Step Image
                       if (step.imageUrl != null) ...[
                         const SizedBox(height: 12),
@@ -879,15 +780,15 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(
-                                      Icons.broken_image,
-                                      size: 48,
+                                      Icons.broken_image, 
+                                      size: 48, 
                                       color: Colors.grey[500],
-                                    ),
+                                      ),
                                     const SizedBox(height: 8),
                                     Text(
                                       'Image unavailable',
                                       style: TextStyle(
-                                        color: Colors.grey[600],
+                                        color: Colors.grey[600], 
                                         fontSize: 12,
                                       ),
                                     ),
@@ -899,50 +800,16 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         ),
                       ],
                       
-                      // Timer
+                      // Step Timer
                       if (step.timer != null) ...[
                         const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.timer,
-                                size: 18,
-                                color: AppColors.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Step Timer',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  _formatTimer(step.timer),
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                        StepTimer(
+                          duration: step.timer!,
+                          autoStart: false, // User can start manually
+                          onTimerComplete: () {
+                            // Handle timer completion (e.g., show a notification)
+                            print('Step ${step.stepNumber} timer completed!');
+                          },
                         ),
                       ],
                     ],
@@ -975,7 +842,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        
+
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -1024,16 +891,16 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 : null,
           ),
           const SizedBox(height: 12),
-          
+
           Text(
             'By',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 14, 
               color: Colors.grey[600],
             ),
           ),
           const SizedBox(height: 4),
-          
+
           Text(
             recipe.authorName,
             style: const TextStyle(
@@ -1043,7 +910,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -1086,7 +953,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               child: Text(
                 _isFollowing ? 'Following' : 'Follow',
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 16, 
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1094,80 +961,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCommentsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Comments',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppColors.secondary,
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Add Comment Input
-        Row(
-          children: [
-            const CircleAvatar(
-              radius: 20,
-              child: Icon(Icons.person, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextField(
-                controller: _commentController,
-                decoration: InputDecoration(
-                  hintText: 'Add a comment',
-                  hintStyle: TextStyle(fontSize: 15, color: Colors.grey[500]),
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                ),
-                onSubmitted: (value) {
-                  if (value.trim().isNotEmpty) {
-                    // TODO: Implement comment posting
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
-                          children: const [
-                            Icon(Icons.check_circle, color: Colors.white, size: 20),
-                            SizedBox(width: 12),
-                            Text('Comment posted!'),
-                          ],
-                        ),
-                        backgroundColor: AppColors.success,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                    _commentController.clear();
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  void _showMoreOptions(BuildContext context, RecipeModel recipe) {
-    RecipeOptionsBottomSheet.show(
-      context: context,
-      recipe: recipe,
-      mode: 'viewer',
     );
   }
 }
