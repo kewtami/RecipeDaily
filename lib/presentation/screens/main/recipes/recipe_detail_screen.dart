@@ -84,20 +84,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     }
   }
 
-  String _formatTimer(Duration? timer) {
-    if (timer == null) return '';
-    
-    final hours = timer.inHours;
-    final minutes = timer.inMinutes.remainder(60);
-    final seconds = timer.inSeconds.remainder(60);
-    
-    if (hours > 0) {
-      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    } else {
-      return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
