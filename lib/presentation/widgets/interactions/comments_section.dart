@@ -185,7 +185,7 @@ class _CommentsSectionState extends State<CommentsSection> {
 
                 try {
                   final provider = Provider.of<InteractionProvider>(context, listen: false);
-                  await provider.updateComment(comment.id, newText);
+                  await provider.updateComment(comment.id, widget.recipeId, newText);
 
                   if (mounted) {
                     Navigator.pop(context);
@@ -244,7 +244,7 @@ class _CommentsSectionState extends State<CommentsSection> {
               onPressed: () async {
                 try {
                   final provider = Provider.of<InteractionProvider>(context, listen: false);
-                  await provider.deleteComment(comment.id);
+                  await provider.deleteComment(comment.id, widget.recipeId);
 
                   if (mounted) {
                     Navigator.pop(context);
