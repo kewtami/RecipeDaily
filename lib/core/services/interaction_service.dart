@@ -61,6 +61,18 @@ class InteractionService {
             .map((doc) => doc.data()['recipeId'] as String)
             .toList());
   }
+
+  // Get likes count realtime
+  Stream<int> getRecipeLikesCount(String recipeId) {
+    return _firestore
+        .collection('recipes')
+        .doc(recipeId)
+        .snapshots()
+        .map((snapshot) {
+          if (!snapshot.exists) return 0;
+          return (snapshot.data()?['likesCount'] as int?) ?? 0;
+        });
+  }
   
   // ==================== SAVED RECIPES ====================
 
