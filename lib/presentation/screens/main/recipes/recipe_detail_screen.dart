@@ -9,6 +9,7 @@ import '../../../widgets/interactions/save_button.dart';
 import '../../../widgets/interactions/comments_section.dart';
 import '../../../widgets/recipes/recipe_options_bottom_sheet.dart';
 import '../../../widgets/interactions/step_timer.dart';
+import '../../../providers/interaction_provider.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final String recipeId;
@@ -31,6 +32,17 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   void initState() {
     super.initState();
     _loadRecipe();
+        // Subscribe to realtime updates
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final interactionProvider = Provider.of<InteractionProvider>(
+        context,
+        listen: false,
+      );
+      
+      // Subscribe to likes count
+      interactionProvider.subscribeToRecipeLikes(widget.recipeId);
+      interactionProvider.subscribeToComments(widget.recipeId);
+    });
   }
 
   Future<void> _loadRecipe() async {
