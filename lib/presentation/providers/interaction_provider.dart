@@ -16,6 +16,9 @@ class InteractionProvider extends ChangeNotifier {
   // Comments cache
   Map<String, List<RecipeComment>> _commentsCache = {};
   
+  // Likes count cache
+  Map<String, int> _likesCountCache = {};
+  
   // Loading states
   bool _isTogglingLike = false;
   bool _isTogglingSave = false;
@@ -35,9 +38,22 @@ class InteractionProvider extends ChangeNotifier {
     });
   }
 
+  // Subscribe to recipe likes count
+  void subscribeToRecipeLikes(String recipeId) {
+    _service.getRecipeLikesCount(recipeId).listen((count) {
+      _likesCountCache[recipeId] = count;
+      notifyListeners();
+    });
+  }
+
   // Check if recipe is liked
   bool isRecipeLiked(String recipeId) {
     return _likedRecipeIds.contains(recipeId);
+  }
+
+  // Get likes count
+  int getLikesCount(String recipeId, int defaultCount) {
+    return _likesCountCache[recipeId] ?? defaultCount;
   }
 
   // Toggle like on a recipe
@@ -45,15 +61,16 @@ class InteractionProvider extends ChangeNotifier {
     if (_isTogglingLike) return;
 
     _isTogglingLike = true;
-    notifyListeners();
-
+    
     try {
       // Optimistic update
       final wasLiked = _likedRecipeIds.contains(recipeId);
       if (wasLiked) {
         _likedRecipeIds.remove(recipeId);
+        _likesCountCache[recipeId] = (_likesCountCache[recipeId] ?? 0) - 1;
       } else {
         _likedRecipeIds.add(recipeId);
+        _likesCountCache[recipeId] = (_likesCountCache[recipeId] ?? 0) + 1;
       }
       notifyListeners();
 
@@ -61,11 +78,13 @@ class InteractionProvider extends ChangeNotifier {
       await _service.toggleLike(recipeId, userId);
     } catch (e) {
       // Revert on error
-      final wasLiked = _likedRecipeIds.contains(recipeId);
+      final wasLiked = !_likedRecipeIds.contains(recipeId);
       if (wasLiked) {
         _likedRecipeIds.remove(recipeId);
+        _likesCountCache[recipeId] = (_likesCountCache[recipeId] ?? 0) - 1;
       } else {
         _likedRecipeIds.add(recipeId);
+        _likesCountCache[recipeId] = (_likesCountCache[recipeId] ?? 0) + 1;
       }
       notifyListeners();
       rethrow;
@@ -95,7 +114,6 @@ class InteractionProvider extends ChangeNotifier {
     if (_isTogglingSave) return;
 
     _isTogglingSave = true;
-    notifyListeners();
 
     try {
       // Optimistic update
@@ -156,9 +174,24 @@ class InteractionProvider extends ChangeNotifier {
     if (_isAddingComment) throw Exception('Already adding comment');
 
     _isAddingComment = true;
-    notifyListeners();
 
     try {
+      // Optimistic update
+      final tempComment = RecipeComment(
+        id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+        recipeId: recipeId,
+        userId: userId,
+        userName: userName,
+        userPhotoUrl: userPhotoUrl,
+        text: text,
+        createdAt: DateTime.now(),
+        updatedAt: null,
+      );
+      
+      final currentComments = _commentsCache[recipeId] ?? [];
+      _commentsCache[recipeId] = [...currentComments, tempComment];
+      notifyListeners();
+
       final commentId = await _service.addComment(
         recipeId: recipeId,
         userId: userId,
@@ -166,7 +199,17 @@ class InteractionProvider extends ChangeNotifier {
         userPhotoUrl: userPhotoUrl,
         text: text,
       );
+      
+      // Stream auto update with real comment from backend
       return commentId;
+    } catch (e) {
+      // Revert optimistic update
+      final currentComments = _commentsCache[recipeId] ?? [];
+      _commentsCache[recipeId] = currentComments
+          .where((c) => !c.id.startsWith('temp_'))
+          .toList();
+      notifyListeners();
+      rethrow;
     } finally {
       _isAddingComment = false;
       notifyListeners();
@@ -174,13 +217,57 @@ class InteractionProvider extends ChangeNotifier {
   }
 
   // Update a comment
-  Future<void> updateComment(String commentId, String newText) async {
-    await _service.updateComment(commentId, newText);
+  Future<void> updateComment(String commentId, String recipeId, String newText) async {
+    // Optimistic update
+    final comments = _commentsCache[recipeId];
+    if (comments != null) {
+      final index = comments.indexWhere((c) => c.id == commentId);
+      if (index != -1) {
+        final updatedComment = RecipeComment(
+          id: comments[index].id,
+          recipeId: comments[index].recipeId,
+          userId: comments[index].userId,
+          userName: comments[index].userName,
+          userPhotoUrl: comments[index].userPhotoUrl,
+          text: newText,
+          createdAt: comments[index].createdAt,
+          updatedAt: DateTime.now(),
+        );
+        _commentsCache[recipeId] = [
+          ...comments.sublist(0, index),
+          updatedComment,
+          ...comments.sublist(index + 1),
+        ];
+        notifyListeners();
+      }
+    }
+    
+    try {
+      await _service.updateComment(commentId, newText);
+    } catch (e) {
+      // Revert if error
+      rethrow;
+    }
   }
 
   // Delete a comment
-  Future<void> deleteComment(String commentId) async {
-    await _service.deleteComment(commentId);
+  Future<void> deleteComment(String commentId, String recipeId) async {
+    // Optimistic delete
+    final comments = _commentsCache[recipeId];
+    if (comments != null) {
+      final originalComments = List<RecipeComment>.from(comments);
+      _commentsCache[recipeId] = comments.where((c) => c.id != commentId).toList();
+      notifyListeners();
+      
+      try {
+        await _service.deleteComment(commentId);
+      } catch (e) {
+        // Revert if error
+        _commentsCache[recipeId] = originalComments;
+        notifyListeners();
+        rethrow;
+      }
+    }
   }
 
   // Clear cache
@@ -188,6 +275,7 @@ class InteractionProvider extends ChangeNotifier {
     _likedRecipeIds.clear();
     _savedRecipeIds.clear();
     _commentsCache.clear();
+    _likesCountCache.clear();
     notifyListeners();
   }
 }
