@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/interaction_provider.dart';
-import '../../providers/recipe_provider.dart';
 import '../../../core/constants/app_colors.dart';
 
 class LikeButton extends StatelessWidget {
@@ -28,22 +27,16 @@ class LikeButton extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const SizedBox.shrink();
 
-    return Consumer2<InteractionProvider, RecipeProvider>(
-      builder: (context, interactionProvider, recipeProvider, _) {
-        final isLiked = interactionProvider.isRecipeLiked(recipeId);
-        
-        final currentRecipe = recipeProvider.currentRecipe;
-        final displayCount = (currentRecipe?.id == recipeId) 
-            ? currentRecipe!.likesCount 
-            : likesCount;
+    return Consumer<InteractionProvider>(
+      builder: (context, provider, _) {
+        final isLiked = provider.isRecipeLiked(recipeId);
+        // Get updated likes count
+        final displayCount = provider.getLikesCount(recipeId, likesCount);
 
         return GestureDetector(
           onTap: () async {
             try {
-              await interactionProvider.toggleLike(recipeId, user.uid);
-              
-              await recipeProvider.fetchRecipe(recipeId);
-              
+              await provider.toggleLike(recipeId, user.uid);
               onLikeChanged?.call();
               
               if (context.mounted) {
