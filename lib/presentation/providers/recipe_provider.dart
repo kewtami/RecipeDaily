@@ -368,33 +368,47 @@ class RecipeProvider with ChangeNotifier {
 
   // Apply search and filters
   void _applySearchAndFilters() {
-    // If no search query and no filters, show all recipes
+    // Clear results if no search query and no filters
     if (_currentSearchQuery.isEmpty && _currentDifficulty == null && _currentCategory == null) {
       _filteredRecipes = [];
       return;
     }
 
-    _filteredRecipes = _recipes.where((recipe) {
-      // Search query matching 
+    // Collect all recipes from different sources
+    final allRecipesList = <RecipeModel>[];
+    allRecipesList.addAll(_trendingRecipes);
+    allRecipesList.addAll(_popularRecipes);
+    allRecipesList.addAll(_recommendedRecipes);
+    allRecipesList.addAll(_recipes);
+    
+    // Remove duplicate recipes by ID
+    final uniqueMap = <String, RecipeModel>{};
+    for (var recipe in allRecipesList) {
+      uniqueMap[recipe.id] = recipe;
+    }
+    final uniqueRecipes = uniqueMap.values.toList();
+
+    // Apply search and filter logic
+    _filteredRecipes = uniqueRecipes.where((recipe) {
+      // Check search query
       bool matchesSearch = true;
       if (_currentSearchQuery.isNotEmpty) {
-        final titleMatch = recipe.title.toLowerCase().contains(_currentSearchQuery);
-        final categoryMatch = recipe.category.toLowerCase().contains(_currentSearchQuery);
-        final tagsMatch = recipe.tags.any(
-          (tag) => tag.toLowerCase().contains(_currentSearchQuery),
-        );
-        final descriptionMatch = recipe.description.toLowerCase().contains(_currentSearchQuery);
+        final query = _currentSearchQuery.toLowerCase();
+        final titleMatch = recipe.title.toLowerCase().contains(query);
+        final categoryMatch = recipe.category.toLowerCase().contains(query);
+        final tagsMatch = recipe.tags.any((tag) => tag.toLowerCase().contains(query));
+        final descriptionMatch = recipe.description.toLowerCase().contains(query);
         
         matchesSearch = titleMatch || categoryMatch || tagsMatch || descriptionMatch;
       }
 
-      // Difficulty filter
+      // Check difficulty filter
       bool matchesDifficulty = true;
       if (_currentDifficulty != null) {
         matchesDifficulty = recipe.difficulty == _currentDifficulty;
       }
 
-      // Category filter
+      // Check category filter
       bool matchesCategory = true;
       if (_currentCategory != null) {
         matchesCategory = recipe.category.toLowerCase() == _currentCategory!.toLowerCase();
@@ -403,7 +417,7 @@ class RecipeProvider with ChangeNotifier {
       return matchesSearch && matchesDifficulty && matchesCategory;
     }).toList();
 
-    // Sort by relevance only if there's a search query
+    // Sort by relevance when searching
     if (_currentSearchQuery.isNotEmpty) {
       _filteredRecipes.sort((a, b) {
         final aTitle = a.title.toLowerCase().contains(_currentSearchQuery);
@@ -411,12 +425,6 @@ class RecipeProvider with ChangeNotifier {
         
         if (aTitle && !bTitle) return -1;
         if (!aTitle && bTitle) return 1;
-        
-        final aCategory = a.category.toLowerCase().contains(_currentSearchQuery);
-        final bCategory = b.category.toLowerCase().contains(_currentSearchQuery);
-        
-        if (aCategory && !bCategory) return -1;
-        if (!aCategory && bCategory) return 1;
         
         return 0;
       });
