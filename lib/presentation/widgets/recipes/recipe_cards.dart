@@ -135,7 +135,7 @@ class RecipeCard extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: AppColors.secondary,
             ),
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           
@@ -467,7 +467,7 @@ class TrendingRecipeCard extends StatelessWidget {
                 fontWeight: FontWeight.bold,
                 color: AppColors.secondary,
               ),
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 6),
