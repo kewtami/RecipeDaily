@@ -127,15 +127,40 @@ class RecipeService {
         
         // Only include users with recipes or followers
         if (followersCount > 0 || recipesCount > 0) {
+          // Get profile image URL - PRIORITY: photoURL > photoUrl > profileImageUrl
+          String? photoUrl;
+          
+          final photoURL = userData['photoURL'] as String?;
+          final photoUrlField = userData['photoUrl'] as String?;
+          final profileImageUrl = userData['profileImageUrl'] as String?;
+          
+          if (photoURL != null && photoURL.isNotEmpty) {
+            photoUrl = photoURL;
+          } else if (photoUrlField != null && photoUrlField.isNotEmpty) {
+            photoUrl = photoUrlField;
+          } else if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+            photoUrl = profileImageUrl;
+          }
+          
+          // Get display name - PRIORITY: displayName (formatted) > name > username
+          String displayName = 'User';
+          
+          final displayNameField = userData['displayName'] as String?;
+          final nameField = userData['name'] as String?;
+          final usernameField = userData['username'] as String?;
+          
+          if (displayNameField != null && displayNameField.isNotEmpty) {
+            displayName = displayNameField;
+          } else if (nameField != null && nameField.isNotEmpty) {
+            displayName = nameField;
+          } else if (usernameField != null && usernameField.isNotEmpty) {
+            displayName = usernameField;
+          }
+          
           creatorsWithStats.add({
             'userId': userId,
-            // Retrieve actual name from Firestore
-            'name': userData['name'] ?? 
-                   userData['displayName'] ?? 
-                   'User',
-            // Retrieve actual photo URL from Firestore
-            'photoUrl': userData['profileImageUrl'] ?? 
-                       userData['photoURL'],
+            'name': displayName,
+            'photoUrl': photoUrl,
             'followersCount': followersCount,
             'recipesCount': recipesCount,
           });
